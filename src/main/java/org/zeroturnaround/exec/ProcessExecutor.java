@@ -56,6 +56,11 @@ import org.zeroturnaround.exec.stream.slf4j.Slf4jDebugOutputStream;
 import org.zeroturnaround.exec.stream.slf4j.Slf4jInfoOutputStream;
 import org.zeroturnaround.exec.stream.slf4j.Slf4jStream;
 
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+
 
 
 /**
@@ -145,6 +150,12 @@ public class ProcessExecutor {
    * Process event handlers.
    */
   private final CompositeProcessListener listeners = new CompositeProcessListener();
+  
+  /**
+   * ssh Session
+   */
+  protected Session sshSession;
+
 
   /**
    * Helper for logging messages about starting and waiting for the processes.
@@ -1011,7 +1022,29 @@ public class ProcessExecutor {
           allowedExitValues == null ? null : new HashSet<Integer>(allowedExitValues));
   }
 
+  public ProcessExecutor ssh(String username, String host, Integer portOrNull, String privateKeyPath,
+          String passPhraseOrNull) throws JSchException {
+      JSch jsch = new JSch();
+      jsch.addIdentity(privateKeyPath, passPhraseOrNull);
+      sshSession = jsch.getSession(username, host);
+      sshSession.setConfig("StrictHostKeyChecking", "no");
+      if (portOrNull != null)
+          sshSession.setPort(portOrNull);
+      return this;
+  }
+
   private Process invokeStart() throws IOException {
+	if (sshSession != null)
+		try {
+            sshSession.connect();
+            ChannelExec channel = (ChannelExec) sshSession.openChannel("exec");
+            String cmdLine = String.join(" ", builder.command());
+            channel.setCommand(cmdLine);
+            return new SshProcess(channel);
+        } catch (JSchException e) {
+            throw new IOException(e.getMessage(), e);
+        }
+
     try {
       return builder.start();
     }
@@ -1076,6 +1109,14 @@ public class ProcessExecutor {
     WaitForProcess result = new WaitForProcess(process, attributes, stopper, closer, out, listeners.clone(), messageLogger);
     // Invoke listeners - changing this executor does not affect the started process any more
     listeners.afterStart(process, this);
+    
+    if (sshSession != null)
+    try {
+        ((SshProcess) process).connect();
+    } catch (JSchException e) {
+        throw new IOException(e.getMessage(), e);
+    }
+
     return result;
   }
 
