@@ -1025,11 +1025,15 @@ public class ProcessExecutor {
   public ProcessExecutor ssh(String username, String host, Integer portOrNull, String privateKeyPath,
           String passPhraseOrNull) throws JSchException {
       JSch jsch = new JSch();
-      jsch.addIdentity(privateKeyPath, passPhraseOrNull);
+      if (privateKeyPath != null)
+    	  jsch.addIdentity(privateKeyPath, passPhraseOrNull);
+      
       sshSession = jsch.getSession(username, host);
       sshSession.setConfig("StrictHostKeyChecking", "no");
       if (portOrNull != null)
           sshSession.setPort(portOrNull);
+      if (privateKeyPath == null)
+    	  sshSession.setPassword(passPhraseOrNull);
       return this;
   }
 
