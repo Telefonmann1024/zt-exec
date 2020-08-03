@@ -17,41 +17,17 @@
  */
 package org.zeroturnaround.exec;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import org.apache.commons.io.output.NullOutputStream;
-import org.apache.commons.io.output.TeeOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.zeroturnaround.exec.close.ProcessCloser;
 import org.zeroturnaround.exec.close.StandardProcessCloser;
 import org.zeroturnaround.exec.close.TimeoutProcessCloser;
-import org.zeroturnaround.exec.listener.CompositeProcessListener;
-import org.zeroturnaround.exec.listener.DestroyerListenerAdapter;
-import org.zeroturnaround.exec.listener.ProcessDestroyer;
-import org.zeroturnaround.exec.listener.ProcessListener;
-import org.zeroturnaround.exec.listener.ShutdownHookProcessDestroyer;
+import org.zeroturnaround.exec.listener.*;
 import org.zeroturnaround.exec.stop.DestroyProcessStopper;
 import org.zeroturnaround.exec.stop.NopProcessStopper;
 import org.zeroturnaround.exec.stop.ProcessStopper;
-import org.zeroturnaround.exec.stream.CallerLoggerUtil;
-import org.zeroturnaround.exec.stream.ExecuteStreamHandler;
-import org.zeroturnaround.exec.stream.PumpStreamHandler;
+import org.zeroturnaround.exec.stream.*;
 import org.zeroturnaround.exec.stream.slf4j.Slf4jDebugOutputStream;
 import org.zeroturnaround.exec.stream.slf4j.Slf4jInfoOutputStream;
 import org.zeroturnaround.exec.stream.slf4j.Slf4jStream;
@@ -60,6 +36,10 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
+import java.io.*;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.*;
 
 
 
@@ -1053,7 +1033,6 @@ public class ProcessExecutor {
       return builder.start();
     }
     catch (IOException e) {
-      log.error("Could not start process:", e);
       if (e.getClass().equals(IOException.class)) {
         String message = getExecutingErrorMessage();
         ProcessInitException p = ProcessInitException.newInstance(message, e);
@@ -1065,7 +1044,6 @@ public class ProcessExecutor {
       throw e;
     }
     catch (RuntimeException e) {
-      log.error("Could not start process:", e);
       if (e.getClass().equals(IllegalArgumentException.class)) {
         throw new IllegalArgumentException(getExecutingErrorMessage(), e);
       }

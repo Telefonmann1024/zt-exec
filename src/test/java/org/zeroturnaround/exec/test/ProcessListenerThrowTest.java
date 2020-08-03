@@ -26,7 +26,7 @@ public class ProcessListenerThrowTest {
     public void afterFinish(Process process, ProcessResult result) {
       super.afterFinish(process, result);
 
-      if (result.getOutput().getString().contains("java version")) {
+      if (result.getOutput().getString().contains("version")) {
         throw new InvalidOutputException("Test", result);
       }
     }
